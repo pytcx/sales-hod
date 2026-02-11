@@ -567,12 +567,30 @@
                 // Analyze all data
                 analyzedData = allData.map(analyzeHOD);
                 
-                // Get latest date
-                const dates = analyzedData.map(row => row.converted_date).filter(d => d);
-                const latestDate = dates.reduce((a, b) => a > b ? a : b);
+                // Parse dates correctly (DD-MM-YYYY format)
+                analyzedData.forEach(row => {
+                    if (row.converted_date) {
+                        const parts = row.converted_date.split('-');
+                        if (parts.length === 3) {
+                            // Convert DD-MM-YYYY to YYYY-MM-DD for proper sorting
+                            row.converted_date_sort = `${parts[2]}-${parts[1]}-${parts[0]}`;
+                        } else {
+                            row.converted_date_sort = row.converted_date;
+                        }
+                    }
+                });
                 
-                // Format date nicely (e.g., "10 Feb 2026")
-                const dateObj = new Date(latestDate);
+                // Get latest date using sortable format
+                const dates = analyzedData.map(row => row.converted_date_sort).filter(d => d);
+                const latestDateSort = dates.reduce((a, b) => a > b ? a : b);
+                
+                // Find the original date format
+                const latestRow = analyzedData.find(row => row.converted_date_sort === latestDateSort);
+                const latestDate = latestRow.converted_date;
+                
+                // Parse and format date nicely
+                const dateParts = latestDate.split('-');
+                const dateObj = new Date(`${dateParts[2]}-${dateParts[1]}-${dateParts[0]}`);
                 const formattedDate = dateObj.toLocaleDateString('en-GB', { 
                     day: 'numeric', 
                     month: 'short', 
@@ -581,8 +599,18 @@
                 document.getElementById('lastUpdateDate').textContent = formattedDate;
                 
                 // Populate date selector (last 15 days from most recent)
-                const uniqueDates = [...new Set(dates)].sort().reverse();
-                const last15Dates = uniqueDates.slice(0, 15); // Get most recent 15 dates
+                const uniqueDates = [...new Set(analyzedData.map(row => row.converted_date))].filter(d => d);
+                // Sort by the sortable date format
+                const datesWithSort = uniqueDates.map(d => {
+                    const parts = d.split('-');
+                    return {
+                        original: d,
+                        sortable: `${parts[2]}-${parts[1]}-${parts[0]}`
+                    };
+                });
+                datesWithSort.sort((a, b) => b.sortable.localeCompare(a.sortable));
+                const last15Dates = datesWithSort.slice(0, 15).map(d => d.original);
+                
                 const dateSelector = document.getElementById('date-selector');
                 dateSelector.innerHTML = last15Dates.map(date => 
                     `<option value="${date}">${date}</option>`
@@ -738,26 +766,80 @@
         
         // Load summary data (last 30 days)
         function loadSummaryData() {
-            // Get last 30 days of data
-            const dates = analyzedData.map(row => row.converted_date).filter(d => d).sort();
-            const latestDate = dates[dates.length - 1];
-            const latestDateObj = new Date(latestDate);
-            const thirtyDaysAgo = new Date(latestDateObj);
+            // Helper function to convert DD-MM-YYYY to Date object
+            function parseDate(dateStr) {
+                if (!dateStr) return null;
+                const parts = dateStr.split('-');
+                if (parts.length !== 3) return null;
+                // DD-MM-YYYY to YYYY-MM-DD
+                return new Date(`${parts[2]}-${parts[1]}-${parts[0]}`);
+            }
+            
+            // Get all dates and find the most recent
+            const validData = analyzedData.filter(row => row.converted_date);
+            if (validData.length === 0) {
+                document.getElementById('total-converts').textContent = '0';
+                document.getElementById('overall-score').textContent = '--';
+                document.getElementById('overall-redflag-pct').textContent = '--';
+                document.getElementById('date-range').textContent = 'No data';
+                return;
+            }
+            
+            // Find latest date
+            let latestDate = null;
+            let latestDateStr = '';
+            validData.forEach(row => {
+                const date = parseDate(row.converted_date);
+                if (date && (!latestDate || date > latestDate)) {
+                    latestDate = date;
+                    latestDateStr = row.converted_date;
+                }
+            });
+            
+            // Calculate 30 days ago
+            const thirtyDaysAgo = new Date(latestDate);
             thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-            const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
             
             // Filter to last 30 days
-            const last30DaysData = analyzedData.filter(row => row.converted_date >= thirtyDaysAgoStr);
+            const last30DaysData = validData.filter(row => {
+                const date = parseDate(row.converted_date);
+                return date && date >= thirtyDaysAgo;
+            });
+            
+            if (last30DaysData.length === 0) {
+                // If no data in last 30 days, use all available data
+                last30DaysData.push(...validData);
+            }
             
             const totalConverts = last30DaysData.length;
             const avgScore = (last30DaysData.reduce((sum, row) => sum + row.hod_score, 0) / totalConverts).toFixed(2);
             const redFlagCount = last30DaysData.filter(row => row.has_red_flag).length;
             const redFlagPct = Math.round(redFlagCount / totalConverts * 100);
             
+            // Get min and max dates for display
+            let minDate = latestDate;
+            let maxDate = latestDate;
+            let minDateStr = latestDateStr;
+            let maxDateStr = latestDateStr;
+            
+            last30DaysData.forEach(row => {
+                const date = parseDate(row.converted_date);
+                if (date) {
+                    if (date < minDate) {
+                        minDate = date;
+                        minDateStr = row.converted_date;
+                    }
+                    if (date > maxDate) {
+                        maxDate = date;
+                        maxDateStr = row.converted_date;
+                    }
+                }
+            });
+            
             document.getElementById('total-converts').textContent = totalConverts;
             document.getElementById('overall-score').textContent = `${avgScore}/7`;
             document.getElementById('overall-redflag-pct').textContent = `${redFlagPct}%`;
-            document.getElementById('date-range').textContent = `${thirtyDaysAgoStr} to ${latestDate}`;
+            document.getElementById('date-range').textContent = `${minDateStr} to ${maxDateStr}`;
             
             // Top destinations (last 30 days)
             const destStats = {};
