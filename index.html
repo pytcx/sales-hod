@@ -4,7 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sales HOD Quality Dashboard</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * {
@@ -145,23 +144,8 @@
             margin-bottom: 0.5rem;
         }
         
-        .metric-change {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.25rem;
+        .metric-subtext {
             font-size: 0.875rem;
-            font-weight: 500;
-        }
-        
-        .metric-change.up {
-            color: var(--accent-success);
-        }
-        
-        .metric-change.down {
-            color: var(--accent-danger);
-        }
-        
-        .metric-change.neutral {
             color: var(--text-secondary);
         }
         
@@ -231,50 +215,38 @@
             background: #d1fae5 !important;
         }
         
-        /* Category Cards Grid */
-        .category-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 1rem;
-        }
-        
-        .category-card {
-            background: var(--bg-tertiary);
-            padding: 1rem;
-            border-radius: 8px;
-            text-align: center;
-        }
-        
-        .category-name {
-            font-size: 0.75rem;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            margin-bottom: 0.5rem;
-            font-weight: 500;
-        }
-        
-        .category-value {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: var(--accent-primary);
-        }
-        
-        /* Charts */
-        .chart-container {
-            position: relative;
-            height: 300px;
-            margin-bottom: 2rem;
-        }
-        
         .loading {
             text-align: center;
             padding: 3rem;
             color: var(--text-secondary);
         }
         
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
         .error {
             background: #fee2e2;
             color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .success {
+            background: #d1fae5;
+            color: #065f46;
             padding: 1rem;
             border-radius: 8px;
             margin-bottom: 1rem;
@@ -295,131 +267,127 @@
         
         <div class="tabs">
             <button class="tab active" onclick="switchTab('daily')">Daily Review</button>
-            <button class="tab" onclick="switchTab('weekly')">Weekly Review</button>
+            <button class="tab" onclick="switchTab('summary')">Summary Stats</button>
         </div>
         
         <!-- Daily Review Tab -->
         <div id="daily-tab" class="tab-content active">
-            <div class="metrics-grid">
-                <div class="metric-card">
-                    <div class="metric-label">Converts</div>
-                    <div class="metric-value" id="daily-converts">--</div>
-                    <div class="metric-change" id="daily-converts-change">
-                        <span>--</span>
-                    </div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-label">HOD Quality Score</div>
-                    <div class="metric-value" id="daily-score">--</div>
-                    <div class="metric-change" id="daily-score-change">
-                        <span>--</span>
-                    </div>
-                </div>
-                
-                <div class="metric-card">
-                    <div class="metric-label">Red-flag HODs</div>
-                    <div class="metric-value" id="daily-redflags">--</div>
-                    <div class="metric-change" id="daily-redflags-change">
-                        <span>--</span>
-                    </div>
+            <div id="loading-message" class="section">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Loading data from Google Sheets...</p>
                 </div>
             </div>
             
-            <div class="section">
-                <div class="section-header">
-                    <h2 class="section-title">Manager Performance</h2>
-                    <select class="dropdown" id="manager-filter" onchange="filterByManager()">
-                        <option value="All">All Managers</option>
-                    </select>
+            <div id="daily-content" style="display: none;">
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Select Date</h2>
+                        <select class="dropdown" id="date-selector" onchange="loadDailyData()">
+                            <option value="">Loading dates...</option>
+                        </select>
+                    </div>
                 </div>
                 
-                <table id="manager-performance-table">
-                    <thead>
-                        <tr>
-                            <th>Manager Name</th>
-                            <th>Total HODs</th>
-                            <th>Avg Quality Score</th>
-                            <th>Red Flag Count</th>
-                            <th>Avg Character Count</th>
-                        </tr>
-                    </thead>
-                    <tbody id="manager-performance-body">
-                        <tr><td colspan="5" class="loading">Loading data...</td></tr>
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="section">
-                <h2 class="section-title">Category Coverage Analysis</h2>
-                <div class="category-grid" id="category-coverage">
-                    <div class="loading">Loading...</div>
+                <div class="metrics-grid">
+                    <div class="metric-card">
+                        <div class="metric-label">Converts</div>
+                        <div class="metric-value" id="daily-converts">--</div>
+                        <div class="metric-subtext">For selected date</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">HOD Quality Score</div>
+                        <div class="metric-value" id="daily-score">--</div>
+                        <div class="metric-subtext">Average out of 7</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Red-flag HODs</div>
+                        <div class="metric-value" id="daily-redflags">--</div>
+                        <div class="metric-subtext" id="redflag-percent">--</div>
+                    </div>
+                    
+                    <div class="metric-card">
+                        <div class="metric-label">Avg Character Count</div>
+                        <div class="metric-value" id="daily-chars">--</div>
+                        <div class="metric-subtext">Per HOD</div>
+                    </div>
                 </div>
-            </div>
-            
-            <div class="section">
-                <h2 class="section-title">TL Performance</h2>
-                <table id="tl-performance-table">
-                    <thead>
-                        <tr>
-                            <th>TL Name</th>
-                            <th>Total HODs</th>
-                            <th>Avg Score</th>
-                        </tr>
-                    </thead>
-                    <tbody id="tl-performance-body">
-                        <tr><td colspan="3" class="loading">Loading data...</td></tr>
-                    </tbody>
-                </table>
+                
+                <div class="section">
+                    <div class="section-header">
+                        <h2 class="section-title">Manager Performance</h2>
+                        <select class="dropdown" id="manager-filter" onchange="loadDailyData()">
+                            <option value="All">All Managers</option>
+                        </select>
+                    </div>
+                    
+                    <table id="manager-table">
+                        <thead>
+                            <tr>
+                                <th>Manager Name</th>
+                                <th>Total HODs</th>
+                                <th>Avg Quality Score</th>
+                                <th>Red Flag Count</th>
+                                <th>Avg Character Count</th>
+                            </tr>
+                        </thead>
+                        <tbody id="manager-tbody">
+                            <tr><td colspan="5" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="section">
+                    <h2 class="section-title">TL Performance (Sorted by Score)</h2>
+                    <table id="tl-table">
+                        <thead>
+                            <tr>
+                                <th>TL Name</th>
+                                <th>Total HODs</th>
+                                <th>Avg Score</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tl-tbody">
+                            <tr><td colspan="3" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
-        <!-- Weekly Review Tab -->
-        <div id="weekly-tab" class="tab-content">
-            <div class="section">
-                <h2 class="section-title">Trend Charts</h2>
-                
-                <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem; color: var(--text-secondary);">Overall Average HOD Score</h3>
-                <div class="chart-container">
-                    <canvas id="score-trend-chart"></canvas>
+        <!-- Summary Stats Tab -->
+        <div id="summary-tab" class="tab-content">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Total Converts</div>
+                    <div class="metric-value" id="total-converts">--</div>
+                    <div class="metric-subtext">In database</div>
                 </div>
                 
-                <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem; color: var(--text-secondary);">Overall Average Character Count</h3>
-                <div class="chart-container">
-                    <canvas id="char-trend-chart"></canvas>
+                <div class="metric-card">
+                    <div class="metric-label">Overall Avg Score</div>
+                    <div class="metric-value" id="overall-score">--</div>
+                    <div class="metric-subtext">Across all data</div>
                 </div>
                 
-                <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem; color: var(--text-secondary);">% Converts with Red Flags</h3>
-                <div class="chart-container">
-                    <canvas id="redflag-trend-chart"></canvas>
+                <div class="metric-card">
+                    <div class="metric-label">Red Flag %</div>
+                    <div class="metric-value" id="overall-redflag-pct">--</div>
+                    <div class="metric-subtext">Of all HODs</div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Date Range</div>
+                    <div class="metric-value" style="font-size: 1.25rem;" id="date-range">--</div>
+                    <div class="metric-subtext">Coverage</div>
                 </div>
             </div>
             
             <div class="section">
-                <h2 class="section-title">Manager Weekly Trends - HOD Score</h2>
-                <table id="manager-weekly-score-table">
-                    <thead id="manager-weekly-score-head">
-                        <tr><th colspan="5" class="loading">Loading data...</th></tr>
-                    </thead>
-                    <tbody id="manager-weekly-score-body">
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="section">
-                <h2 class="section-title">Manager Weekly Trends - Character Count</h2>
-                <table id="manager-weekly-char-table">
-                    <thead id="manager-weekly-char-head">
-                        <tr><th colspan="5" class="loading">Loading data...</th></tr>
-                    </thead>
-                    <tbody id="manager-weekly-char-body">
-                    </tbody>
-                </table>
-            </div>
-            
-            <div class="section">
-                <h2 class="section-title">Destination Performance (Last 7 Days)</h2>
-                <table id="destination-performance-table">
+                <h2 class="section-title">Top Destinations</h2>
+                <table>
                     <thead>
                         <tr>
                             <th>Destination</th>
@@ -427,57 +395,54 @@
                             <th>Avg Score</th>
                         </tr>
                     </thead>
-                    <tbody id="destination-performance-body">
-                        <tr><td colspan="3" class="loading">Loading data...</td></tr>
+                    <tbody id="destination-tbody">
+                        <tr><td colspan="3" class="loading">Loading...</td></tr>
                     </tbody>
                 </table>
             </div>
             
             <div class="section">
-                <h2 class="section-title">Top & Bottom Performers (Last 7 Days)</h2>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
-                    <div>
-                        <h3 style="margin-bottom: 1rem; color: var(--accent-success);">Top 5 Sellers</h3>
-                        <table id="top-performers-table">
-                            <thead>
-                                <tr>
-                                    <th>Seller</th>
-                                    <th>HODs</th>
-                                    <th>Avg Score</th>
-                                </tr>
-                            </thead>
-                            <tbody id="top-performers-body">
-                                <tr><td colspan="3" class="loading">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div>
-                        <h3 style="margin-bottom: 1rem; color: var(--accent-danger);">Bottom 5 Sellers (Need Coaching)</h3>
-                        <table id="bottom-performers-table">
-                            <thead>
-                                <tr>
-                                    <th>Seller</th>
-                                    <th>HODs</th>
-                                    <th>Avg Score</th>
-                                    <th>Bad HODs</th>
-                                </tr>
-                            </thead>
-                            <tbody id="bottom-performers-body">
-                                <tr><td colspan="4" class="loading">Loading...</td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+                <h2 class="section-title">Manager Leaderboard</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Rank</th>
+                            <th>Manager Name</th>
+                            <th>Total HODs</th>
+                            <th>Avg Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="leaderboard-tbody">
+                        <tr><td colspan="4" class="loading">Loading...</td></tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
     
     <script>
-        // PLACEHOLDER: Replace with your Google Sheets published CSV URL
-        const DATA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHqz_U20SefqOTsAtT3Vp3N3Uxhb6rpZc5BjWSH7O4GyBtjovbnHTg2HDeQ6m415ay1NwwgAkdQrk/pub?gid=0&single=true&output=csv';
+        // Your Google Sheets published CSV URL
+        const DATA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHqz_U20SefqOTsAtT3Vp3N3Uxhb6rpZc5BjWSH7O4GyBtjovbnHTg2HDeQ6m415ay1NwwgAkdQrk/pub?output=csv';
         
-        let fullData = [];
-        let currentManager = 'All';
+        let allData = [];
+        let analyzedData = [];
+        
+        // Visa-exempt destinations
+        const VISA_EXEMPT = ['MLE', 'Thailand', 'Bali', 'Indonesia', 'SIN'];
+        
+        // Red flag keywords
+        const RED_FLAGS = ['as per product', 'nil', 'check and close', 'iti'];
+        
+        // Category keywords for scoring
+        const CATEGORIES = {
+            customer_intent: ['honeymoon', 'anniversary', 'family', 'first international', 'senior', 'birthday', 'occasion', 'celebrating'],
+            hotel_selection: ['hotel', 'room', 'location', 'view', 'upgrade', 'chosen', 'selected', 'contracted'],
+            activities_transfers: ['activity', 'transfer', 'must do', 'crowd', 'queue', 'tipping', 'baggage'],
+            visa: ['visa', 'document', 'passport', 'timeline', 'appointment'],
+            budget_addons: ['budget', 'tight budget', 'addon', 'skip the line', 'upsell'],
+            customer_flags: ['negotiated', 'aggressive', 'escalated', 'price conscious', 'handholding'],
+            booking_instructions: ['custom card', 'dmc', 'product', 'booking', 'confirm', 'ensure']
+        };
         
         // Tab switching
         function switchTab(tabName) {
@@ -488,152 +453,325 @@
             document.getElementById(`${tabName}-tab`).classList.add('active');
         }
         
-        // Load and parse data
+        // Parse CSV
+        function parseCSV(csv) {
+            const lines = csv.trim().split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+            
+            const data = [];
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                if (!line.trim()) continue;
+                
+                // Handle quoted fields
+                const values = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let char of line) {
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        values.push(current.trim().replace(/^"|"$/g, ''));
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                values.push(current.trim().replace(/^"|"$/g, ''));
+                
+                const row = {};
+                headers.forEach((header, idx) => {
+                    row[header] = values[idx] || '';
+                });
+                
+                if (row.trail_id) {
+                    data.push(row);
+                }
+            }
+            
+            return data;
+        }
+        
+        // Analyze HOD
+        function analyzeHOD(row) {
+            const text = (row.itinerary_notes || '').toLowerCase();
+            const destination = (row.sub_region || '').toUpperCase();
+            
+            // Check red flags
+            let hasRedFlag = false;
+            for (let flag of RED_FLAGS) {
+                if (text.includes(flag)) {
+                    hasRedFlag = true;
+                    break;
+                }
+            }
+            if (text.trim().length < 20) hasRedFlag = true;
+            
+            // Calculate score (0-7)
+            let score = 0;
+            
+            for (let category in CATEGORIES) {
+                if (category === 'visa' && VISA_EXEMPT.includes(destination)) {
+                    score++; // Auto-pass visa
+                } else {
+                    const keywords = CATEGORIES[category];
+                    for (let keyword of keywords) {
+                        if (text.includes(keyword)) {
+                            score++;
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            return {
+                ...row,
+                hod_score: score,
+                char_count: (row.itinerary_notes || '').length,
+                has_red_flag: hasRedFlag
+            };
+        }
+        
+        // Load data
         async function loadData() {
             try {
                 const response = await fetch(DATA_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+                
                 const csvText = await response.text();
-                fullData = parseCSV(csvText);
+                allData = parseCSV(csvText);
+                
+                if (allData.length === 0) {
+                    throw new Error('No data found in Google Sheets');
+                }
+                
+                // Analyze all data
+                analyzedData = allData.map(analyzeHOD);
                 
                 // Get latest date
-                const dates = fullData.map(row => new Date(row.converted_date));
-                const latestDate = new Date(Math.max(...dates));
-                document.getElementById('lastUpdateDate').textContent = latestDate.toLocaleDateString();
+                const dates = analyzedData.map(row => row.converted_date).filter(d => d);
+                const latestDate = dates.reduce((a, b) => a > b ? a : b);
+                document.getElementById('lastUpdateDate').textContent = latestDate;
                 
-                // Populate manager dropdown
-                const managers = [...new Set(fullData.map(row => row.sales_manager))].sort();
-                const dropdown = document.getElementById('manager-filter');
+                // Populate date selector
+                const uniqueDates = [...new Set(dates)].sort().reverse();
+                const dateSelector = document.getElementById('date-selector');
+                dateSelector.innerHTML = uniqueDates.map(date => 
+                    `<option value="${date}">${date}</option>`
+                ).join('');
+                
+                // Populate manager filter
+                const managers = [...new Set(analyzedData.map(row => row.sales_manager))].filter(m => m).sort();
+                const managerFilter = document.getElementById('manager-filter');
                 managers.forEach(manager => {
-                    if (manager) {
-                        const option = document.createElement('option');
-                        option.value = manager;
-                        option.textContent = manager;
-                        dropdown.appendChild(option);
-                    }
+                    const option = document.createElement('option');
+                    option.value = manager;
+                    option.textContent = manager;
+                    managerFilter.appendChild(option);
                 });
                 
-                // Load daily review
-                loadDailyReview(latestDate);
+                // Hide loading, show content
+                document.getElementById('loading-message').style.display = 'none';
+                document.getElementById('daily-content').style.display = 'block';
                 
-                // Load weekly review
-                loadWeeklyReview(latestDate);
+                // Load data for latest date
+                loadDailyData();
+                loadSummaryData();
                 
             } catch (error) {
                 console.error('Error loading data:', error);
-                document.querySelectorAll('.loading').forEach(el => {
-                    el.innerHTML = '<div class="error">Error loading data. Please check your Google Sheets URL.</div>';
-                });
+                document.getElementById('loading-message').innerHTML = `
+                    <div class="error">
+                        <strong>Error loading data:</strong> ${error.message}
+                        <br><br>
+                        Please check:
+                        <ul style="margin-top: 0.5rem; margin-left: 1.5rem;">
+                            <li>Google Sheets is published to web as CSV</li>
+                            <li>Sheet contains data</li>
+                            <li>URL is correct in the code</li>
+                        </ul>
+                    </div>
+                `;
             }
         }
         
-        // Simple CSV parser
-        function parseCSV(csv) {
-            const lines = csv.split('\n');
-            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+        // Load daily data
+        function loadDailyData() {
+            const selectedDate = document.getElementById('date-selector').value;
+            const selectedManager = document.getElementById('manager-filter').value;
             
-            return lines.slice(1).map(line => {
-                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
-                const row = {};
-                headers.forEach((header, i) => {
-                    row[header] = values[i];
-                });
-                return row;
-            }).filter(row => row.trail_id); // Filter empty rows
-        }
-        
-        // Load Daily Review
-        function loadDailyReview(latestDate) {
-            // This is a placeholder - actual implementation would calculate metrics
-            // For now, showing static example
-            document.getElementById('daily-converts').textContent = '68';
-            document.getElementById('daily-converts-change').innerHTML = '↑ +5 vs previous day';
-            document.getElementById('daily-converts-change').className = 'metric-change up';
+            let filtered = analyzedData.filter(row => row.converted_date === selectedDate);
             
-            document.getElementById('daily-score').textContent = '2.4/7';
-            document.getElementById('daily-score-change').innerHTML = '↑ +0.3 vs previous day';
-            document.getElementById('daily-score-change').className = 'metric-change up';
+            if (selectedManager !== 'All') {
+                filtered = filtered.filter(row => row.sales_manager === selectedManager);
+            }
             
-            document.getElementById('daily-redflags').textContent = '45';
-            document.getElementById('daily-redflags-change').innerHTML = '↓ -7 vs previous day';
-            document.getElementById('daily-redflags-change').className = 'metric-change down';
-        }
-        
-        // Filter by manager
-        function filterByManager() {
-            currentManager = document.getElementById('manager-filter').value;
-            // Reload daily review with filter
-            loadDailyReview(new Date());
-        }
-        
-        // Load Weekly Review
-        function loadWeeklyReview(latestDate) {
-            // Placeholder for charts
-            createTrendCharts();
-        }
-        
-        // Create trend charts
-        function createTrendCharts() {
-            // Score trend chart
-            new Chart(document.getElementById('score-trend-chart'), {
-                type: 'line',
-                data: {
-                    labels: ['Days 1-7', 'Days 8-14', 'Days 15-21', 'Days 22-EOM'],
-                    datasets: [{
-                        label: 'Avg HOD Score',
-                        data: [2.1, 2.3, 2.5, 2.4],
-                        borderColor: '#3b82f6',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
+            if (filtered.length === 0) {
+                document.getElementById('daily-converts').textContent = '0';
+                document.getElementById('daily-score').textContent = '--';
+                document.getElementById('daily-redflags').textContent = '0';
+                document.getElementById('daily-chars').textContent = '--';
+                document.getElementById('manager-tbody').innerHTML = '<tr><td colspan="5">No data for selected filters</td></tr>';
+                document.getElementById('tl-tbody').innerHTML = '<tr><td colspan="3">No data for selected filters</td></tr>';
+                return;
+            }
+            
+            // Calculate metrics
+            const totalConverts = filtered.length;
+            const avgScore = (filtered.reduce((sum, row) => sum + row.hod_score, 0) / totalConverts).toFixed(2);
+            const redFlagCount = filtered.filter(row => row.has_red_flag).length;
+            const avgChars = Math.round(filtered.reduce((sum, row) => sum + row.char_count, 0) / totalConverts);
+            
+            document.getElementById('daily-converts').textContent = totalConverts;
+            document.getElementById('daily-score').textContent = `${avgScore}/7`;
+            document.getElementById('daily-redflags').textContent = redFlagCount;
+            document.getElementById('redflag-percent').textContent = `${Math.round(redFlagCount/totalConverts*100)}% of HODs`;
+            document.getElementById('daily-chars').textContent = avgChars;
+            
+            // Manager performance table
+            const managerStats = {};
+            filtered.forEach(row => {
+                const manager = row.sales_manager || 'Unknown';
+                if (!managerStats[manager]) {
+                    managerStats[manager] = { total: 0, scoreSum: 0, redFlags: 0, charSum: 0 };
                 }
+                managerStats[manager].total++;
+                managerStats[manager].scoreSum += row.hod_score;
+                managerStats[manager].redFlags += row.has_red_flag ? 1 : 0;
+                managerStats[manager].charSum += row.char_count;
             });
             
-            // Character count trend chart
-            new Chart(document.getElementById('char-trend-chart'), {
-                type: 'line',
-                data: {
-                    labels: ['Days 1-7', 'Days 8-14', 'Days 15-21', 'Days 22-EOM'],
-                    datasets: [{
-                        label: 'Avg Character Count',
-                        data: [95, 110, 125, 132],
-                        borderColor: '#10b981',
-                        tension: 0.4
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
+            const managerRows = Object.entries(managerStats).map(([manager, stats]) => {
+                const avgScore = (stats.scoreSum / stats.total).toFixed(2);
+                const avgChars = Math.round(stats.charSum / stats.total);
+                const redFlagPct = stats.redFlags / stats.total;
+                const rowClass = redFlagPct > 0.6 ? 'highlight-red' : '';
+                
+                return `
+                    <tr class="${rowClass}">
+                        <td>${manager}</td>
+                        <td>${stats.total}</td>
+                        <td>${avgScore}/7</td>
+                        <td>${stats.redFlags}</td>
+                        <td>${avgChars}</td>
+                    </tr>
+                `;
+            }).join('');
+            
+            document.getElementById('manager-tbody').innerHTML = managerRows || '<tr><td colspan="5">No data</td></tr>';
+            
+            // TL performance table
+            const tlStats = {};
+            filtered.forEach(row => {
+                const tl = row.sales_owner || 'Unknown';
+                if (!tlStats[tl]) {
+                    tlStats[tl] = { total: 0, scoreSum: 0 };
                 }
+                tlStats[tl].total++;
+                tlStats[tl].scoreSum += row.hod_score;
             });
             
-            // Red flag trend chart
-            new Chart(document.getElementById('redflag-trend-chart'), {
-                type: 'bar',
-                data: {
-                    labels: ['Days 1-7', 'Days 8-14', 'Days 15-21', 'Days 22-EOM'],
-                    datasets: [{
-                        label: '% Red Flags',
-                        data: [72, 65, 58, 54],
-                        backgroundColor: '#ef4444'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false
-                }
-            });
+            const tlRows = Object.entries(tlStats)
+                .map(([tl, stats]) => ({
+                    tl,
+                    total: stats.total,
+                    avgScore: (stats.scoreSum / stats.total).toFixed(2)
+                }))
+                .sort((a, b) => b.avgScore - a.avgScore)
+                .map(item => `
+                    <tr>
+                        <td>${item.tl}</td>
+                        <td>${item.total}</td>
+                        <td>${item.avgScore}/7</td>
+                    </tr>
+                `).join('');
+            
+            document.getElementById('tl-tbody').innerHTML = tlRows || '<tr><td colspan="3">No data</td></tr>';
         }
         
-        // Initialize on load
-        window.addEventListener('DOMContentLoaded', () => {
-            // For now, showing placeholder message
-            document.querySelectorAll('.loading').forEach(el => {
-                el.innerHTML = 'Dashboard ready. Please configure Google Sheets URL to load data.';
+        // Load summary data
+        function loadSummaryData() {
+            const totalConverts = analyzedData.length;
+            const avgScore = (analyzedData.reduce((sum, row) => sum + row.hod_score, 0) / totalConverts).toFixed(2);
+            const redFlagCount = analyzedData.filter(row => row.has_red_flag).length;
+            const redFlagPct = Math.round(redFlagCount / totalConverts * 100);
+            
+            const dates = analyzedData.map(row => row.converted_date).filter(d => d).sort();
+            const minDate = dates[0];
+            const maxDate = dates[dates.length - 1];
+            
+            document.getElementById('total-converts').textContent = totalConverts;
+            document.getElementById('overall-score').textContent = `${avgScore}/7`;
+            document.getElementById('overall-redflag-pct').textContent = `${redFlagPct}%`;
+            document.getElementById('date-range').textContent = `${minDate} to ${maxDate}`;
+            
+            // Top destinations
+            const destStats = {};
+            analyzedData.forEach(row => {
+                const dest = row.trail_to || 'Unknown';
+                if (!destStats[dest]) {
+                    destStats[dest] = { total: 0, scoreSum: 0 };
+                }
+                destStats[dest].total++;
+                destStats[dest].scoreSum += row.hod_score;
             });
-        });
+            
+            const destRows = Object.entries(destStats)
+                .map(([dest, stats]) => ({
+                    dest,
+                    total: stats.total,
+                    avgScore: (stats.scoreSum / stats.total).toFixed(2)
+                }))
+                .sort((a, b) => b.total - a.total)
+                .slice(0, 10)
+                .map(item => `
+                    <tr>
+                        <td>${item.dest}</td>
+                        <td>${item.total}</td>
+                        <td>${item.avgScore}/7</td>
+                    </tr>
+                `).join('');
+            
+            document.getElementById('destination-tbody').innerHTML = destRows;
+            
+            // Manager leaderboard
+            const managerStats = {};
+            analyzedData.forEach(row => {
+                const manager = row.sales_manager || 'Unknown';
+                if (!managerStats[manager]) {
+                    managerStats[manager] = { total: 0, scoreSum: 0 };
+                }
+                managerStats[manager].total++;
+                managerStats[manager].scoreSum += row.hod_score;
+            });
+            
+            const leaderboardRows = Object.entries(managerStats)
+                .map(([manager, stats]) => ({
+                    manager,
+                    total: stats.total,
+                    avgScore: (stats.scoreSum / stats.total).toFixed(2)
+                }))
+                .sort((a, b) => b.avgScore - a.avgScore)
+                .map((item, index) => {
+                    const rowClass = index === 0 ? 'highlight-green' : (index >= managerStats.length - 2 ? 'highlight-red' : '');
+                    return `
+                        <tr class="${rowClass}">
+                            <td>${index + 1}</td>
+                            <td>${item.manager}</td>
+                            <td>${item.total}</td>
+                            <td>${item.avgScore}/7</td>
+                        </tr>
+                    `;
+                }).join('');
+            
+            document.getElementById('leaderboard-tbody').innerHTML = leaderboardRows;
+        }
+        
+        // Initialize
+        window.addEventListener('DOMContentLoaded', loadData);
     </script>
 </body>
 </html>
