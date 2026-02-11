@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales HOD Quality Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f1f5f9;
+            --accent-primary: #3b82f6;
+            --accent-success: #10b981;
+            --accent-warning: #f59e0b;
+            --accent-danger: #ef4444;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .header-meta {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+        }
+        
+        .data-freshness {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .freshness-indicator {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent-success);
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 2px solid var(--border);
+        }
+        
+        .tab {
+            padding: 1rem 1.5rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* Metric Cards */
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 500;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+        
+        .metric-change {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
+        
+        .metric-change.up {
+            color: var(--accent-success);
+        }
+        
+        .metric-change.down {
+            color: var(--accent-danger);
+        }
+        
+        .metric-change.neutral {
+            color: var(--text-secondary);
+        }
+        
+        /* Section */
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        /* Dropdown */
+        .dropdown {
+            padding: 0.5rem 1rem;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            font-size: 0.875rem;
+            background: var(--bg-secondary);
+            cursor: pointer;
+        }
+        
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        th {
+            background: var(--bg-tertiary);
+            padding: 0.75rem 1rem;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.875rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-secondary);
+            border-bottom: 2px solid var(--border);
+        }
+        
+        td {
+            padding: 0.75rem 1rem;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        tr:hover td {
+            background: var(--bg-tertiary);
+        }
+        
+        .highlight-red {
+            background: #fee2e2 !important;
+        }
+        
+        .highlight-green {
+            background: #d1fae5 !important;
+        }
+        
+        /* Category Cards Grid */
+        .category-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+        }
+        
+        .category-card {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .category-name {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+        }
+        
+        .category-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+        
+        /* Charts */
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin-bottom: 2rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 3rem;
+            color: var(--text-secondary);
+        }
+        
+        .error {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Sales HOD Quality Dashboard</h1>
+            <div class="header-meta">
+                <div class="data-freshness">
+                    <span class="freshness-indicator"></span>
+                    <span>Data updated through: <strong id="lastUpdateDate">Loading...</strong></span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('daily')">Daily Review</button>
+            <button class="tab" onclick="switchTab('weekly')">Weekly Review</button>
+        </div>
+        
+        <!-- Daily Review Tab -->
+        <div id="daily-tab" class="tab-content active">
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-label">Converts</div>
+                    <div class="metric-value" id="daily-converts">--</div>
+                    <div class="metric-change" id="daily-converts-change">
+                        <span>--</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">HOD Quality Score</div>
+                    <div class="metric-value" id="daily-score">--</div>
+                    <div class="metric-change" id="daily-score-change">
+                        <span>--</span>
+                    </div>
+                </div>
+                
+                <div class="metric-card">
+                    <div class="metric-label">Red-flag HODs</div>
+                    <div class="metric-value" id="daily-redflags">--</div>
+                    <div class="metric-change" id="daily-redflags-change">
+                        <span>--</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <div class="section-header">
+                    <h2 class="section-title">Manager Performance</h2>
+                    <select class="dropdown" id="manager-filter" onchange="filterByManager()">
+                        <option value="All">All Managers</option>
+                    </select>
+                </div>
+                
+                <table id="manager-performance-table">
+                    <thead>
+                        <tr>
+                            <th>Manager Name</th>
+                            <th>Total HODs</th>
+                            <th>Avg Quality Score</th>
+                            <th>Red Flag Count</th>
+                            <th>Avg Character Count</th>
+                        </tr>
+                    </thead>
+                    <tbody id="manager-performance-body">
+                        <tr><td colspan="5" class="loading">Loading data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">Category Coverage Analysis</h2>
+                <div class="category-grid" id="category-coverage">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">TL Performance</h2>
+                <table id="tl-performance-table">
+                    <thead>
+                        <tr>
+                            <th>TL Name</th>
+                            <th>Total HODs</th>
+                            <th>Avg Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tl-performance-body">
+                        <tr><td colspan="3" class="loading">Loading data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Weekly Review Tab -->
+        <div id="weekly-tab" class="tab-content">
+            <div class="section">
+                <h2 class="section-title">Trend Charts</h2>
+                
+                <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem; color: var(--text-secondary);">Overall Average HOD Score</h3>
+                <div class="chart-container">
+                    <canvas id="score-trend-chart"></canvas>
+                </div>
+                
+                <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem; color: var(--text-secondary);">Overall Average Character Count</h3>
+                <div class="chart-container">
+                    <canvas id="char-trend-chart"></canvas>
+                </div>
+                
+                <h3 style="margin: 1.5rem 0 1rem; font-size: 1rem; color: var(--text-secondary);">% Converts with Red Flags</h3>
+                <div class="chart-container">
+                    <canvas id="redflag-trend-chart"></canvas>
+                </div>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">Manager Weekly Trends - HOD Score</h2>
+                <table id="manager-weekly-score-table">
+                    <thead id="manager-weekly-score-head">
+                        <tr><th colspan="5" class="loading">Loading data...</th></tr>
+                    </thead>
+                    <tbody id="manager-weekly-score-body">
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">Manager Weekly Trends - Character Count</h2>
+                <table id="manager-weekly-char-table">
+                    <thead id="manager-weekly-char-head">
+                        <tr><th colspan="5" class="loading">Loading data...</th></tr>
+                    </thead>
+                    <tbody id="manager-weekly-char-body">
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">Destination Performance (Last 7 Days)</h2>
+                <table id="destination-performance-table">
+                    <thead>
+                        <tr>
+                            <th>Destination</th>
+                            <th>Total Converts</th>
+                            <th>Avg Score</th>
+                        </tr>
+                    </thead>
+                    <tbody id="destination-performance-body">
+                        <tr><td colspan="3" class="loading">Loading data...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+            
+            <div class="section">
+                <h2 class="section-title">Top & Bottom Performers (Last 7 Days)</h2>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;">
+                    <div>
+                        <h3 style="margin-bottom: 1rem; color: var(--accent-success);">Top 5 Sellers</h3>
+                        <table id="top-performers-table">
+                            <thead>
+                                <tr>
+                                    <th>Seller</th>
+                                    <th>HODs</th>
+                                    <th>Avg Score</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-performers-body">
+                                <tr><td colspan="3" class="loading">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div>
+                        <h3 style="margin-bottom: 1rem; color: var(--accent-danger);">Bottom 5 Sellers (Need Coaching)</h3>
+                        <table id="bottom-performers-table">
+                            <thead>
+                                <tr>
+                                    <th>Seller</th>
+                                    <th>HODs</th>
+                                    <th>Avg Score</th>
+                                    <th>Bad HODs</th>
+                                </tr>
+                            </thead>
+                            <tbody id="bottom-performers-body">
+                                <tr><td colspan="4" class="loading">Loading...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // PLACEHOLDER: Replace with your Google Sheets published CSV URL
+        const DATA_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQiHqz_U20SefqOTsAtT3Vp3N3Uxhb6rpZc5BjWSH7O4GyBtjovbnHTg2HDeQ6m415ay1NwwgAkdQrk/pubhtml';
+        
+        let fullData = [];
+        let currentManager = 'All';
+        
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+        }
+        
+        // Load and parse data
+        async function loadData() {
+            try {
+                const response = await fetch(DATA_URL);
+                const csvText = await response.text();
+                fullData = parseCSV(csvText);
+                
+                // Get latest date
+                const dates = fullData.map(row => new Date(row.converted_date));
+                const latestDate = new Date(Math.max(...dates));
+                document.getElementById('lastUpdateDate').textContent = latestDate.toLocaleDateString();
+                
+                // Populate manager dropdown
+                const managers = [...new Set(fullData.map(row => row.sales_manager))].sort();
+                const dropdown = document.getElementById('manager-filter');
+                managers.forEach(manager => {
+                    if (manager) {
+                        const option = document.createElement('option');
+                        option.value = manager;
+                        option.textContent = manager;
+                        dropdown.appendChild(option);
+                    }
+                });
+                
+                // Load daily review
+                loadDailyReview(latestDate);
+                
+                // Load weekly review
+                loadWeeklyReview(latestDate);
+                
+            } catch (error) {
+                console.error('Error loading data:', error);
+                document.querySelectorAll('.loading').forEach(el => {
+                    el.innerHTML = '<div class="error">Error loading data. Please check your Google Sheets URL.</div>';
+                });
+            }
+        }
+        
+        // Simple CSV parser
+        function parseCSV(csv) {
+            const lines = csv.split('\n');
+            const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+            
+            return lines.slice(1).map(line => {
+                const values = line.split(',').map(v => v.trim().replace(/"/g, ''));
+                const row = {};
+                headers.forEach((header, i) => {
+                    row[header] = values[i];
+                });
+                return row;
+            }).filter(row => row.trail_id); // Filter empty rows
+        }
+        
+        // Load Daily Review
+        function loadDailyReview(latestDate) {
+            // This is a placeholder - actual implementation would calculate metrics
+            // For now, showing static example
+            document.getElementById('daily-converts').textContent = '68';
+            document.getElementById('daily-converts-change').innerHTML = '↑ +5 vs previous day';
+            document.getElementById('daily-converts-change').className = 'metric-change up';
+            
+            document.getElementById('daily-score').textContent = '2.4/7';
+            document.getElementById('daily-score-change').innerHTML = '↑ +0.3 vs previous day';
+            document.getElementById('daily-score-change').className = 'metric-change up';
+            
+            document.getElementById('daily-redflags').textContent = '45';
+            document.getElementById('daily-redflags-change').innerHTML = '↓ -7 vs previous day';
+            document.getElementById('daily-redflags-change').className = 'metric-change down';
+        }
+        
+        // Filter by manager
+        function filterByManager() {
+            currentManager = document.getElementById('manager-filter').value;
+            // Reload daily review with filter
+            loadDailyReview(new Date());
+        }
+        
+        // Load Weekly Review
+        function loadWeeklyReview(latestDate) {
+            // Placeholder for charts
+            createTrendCharts();
+        }
+        
+        // Create trend charts
+        function createTrendCharts() {
+            // Score trend chart
+            new Chart(document.getElementById('score-trend-chart'), {
+                type: 'line',
+                data: {
+                    labels: ['Days 1-7', 'Days 8-14', 'Days 15-21', 'Days 22-EOM'],
+                    datasets: [{
+                        label: 'Avg HOD Score',
+                        data: [2.1, 2.3, 2.5, 2.4],
+                        borderColor: '#3b82f6',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Character count trend chart
+            new Chart(document.getElementById('char-trend-chart'), {
+                type: 'line',
+                data: {
+                    labels: ['Days 1-7', 'Days 8-14', 'Days 15-21', 'Days 22-EOM'],
+                    datasets: [{
+                        label: 'Avg Character Count',
+                        data: [95, 110, 125, 132],
+                        borderColor: '#10b981',
+                        tension: 0.4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+            
+            // Red flag trend chart
+            new Chart(document.getElementById('redflag-trend-chart'), {
+                type: 'bar',
+                data: {
+                    labels: ['Days 1-7', 'Days 8-14', 'Days 15-21', 'Days 22-EOM'],
+                    datasets: [{
+                        label: '% Red Flags',
+                        data: [72, 65, 58, 54],
+                        backgroundColor: '#ef4444'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false
+                }
+            });
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            // For now, showing placeholder message
+            document.querySelectorAll('.loading').forEach(el => {
+                el.innerHTML = 'Dashboard ready. Please configure Google Sheets URL to load data.';
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HOD Dashboard - Admin Upload</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-primary: #f8fafc;
+            --bg-secondary: #ffffff;
+            --accent-primary: #3b82f6;
+            --accent-success: #10b981;
+            --accent-danger: #ef4444;
+            --text-primary: #1e293b;
+            --text-secondary: #64748b;
+            --border: #e2e8f0;
+        }
+        
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+        
+        .header {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.5rem;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            background: var(--accent-danger);
+            color: white;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1.5rem;
+        }
+        
+        .upload-area {
+            border: 2px dashed var(--border);
+            border-radius: 12px;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .upload-area:hover {
+            border-color: var(--accent-primary);
+            background: rgba(59, 130, 246, 0.05);
+        }
+        
+        .upload-area.dragover {
+            border-color: var(--accent-primary);
+            background: rgba(59, 130, 246, 0.1);
+        }
+        
+        .upload-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        input[type="file"] {
+            display: none;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-family: 'Inter', sans-serif;
+        }
+        
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #2563eb;
+        }
+        
+        .btn-primary:disabled {
+            background: var(--text-secondary);
+            cursor: not-allowed;
+        }
+        
+        .btn-success {
+            background: var(--accent-success);
+            color: white;
+        }
+        
+        .btn-success:hover {
+            background: #059669;
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .status {
+            padding: 1rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+        
+        .status-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+        
+        .status-success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+        
+        .status-error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+        
+        .preview {
+            margin-top: 2rem;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .stat-card {
+            background: var(--bg-primary);
+            padding: 1rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            margin-bottom: 0.5rem;
+        }
+        
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-primary);
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+        
+        th, td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        
+        th {
+            background: var(--bg-primary);
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+        
+        .spinner {
+            border: 3px solid var(--border);
+            border-top: 3px solid var(--accent-primary);
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Sales HOD Dashboard - Admin Panel</h1>
+            <p style="color: var(--text-secondary); margin-top: 0.5rem;">
+                <span class="badge">Admin Only</span> Upload daily converts and generate email reports
+            </p>
+        </div>
+        
+        <div class="section">
+            <h2 class="section-title">📤 Step 1: Upload Daily Converts Excel</h2>
+            
+            <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+                <div class="upload-icon">📁</div>
+                <p style="font-size: 1.125rem; font-weight: 500; margin-bottom: 0.5rem;">
+                    Click to upload or drag and drop
+                </p>
+                <p style="color: var(--text-secondary); font-size: 0.875rem;">
+                    Excel file (.xlsx, .xls, .csv)
+                </p>
+            </div>
+            
+            <input type="file" id="fileInput" accept=".xlsx,.xls,.csv" onchange="handleFileUpload(event)">
+            
+            <div id="fileStatus"></div>
+        </div>
+        
+        <div class="section" id="analysisSection" style="display: none;">
+            <h2 class="section-title">🔍 Step 2: Analysis Results</h2>
+            
+            <div id="analysisResults">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Analyzing HOD quality...</p>
+                </div>
+            </div>
+            
+            <div class="btn-group" id="actionButtons" style="display: none;">
+                <button class="btn btn-primary" onclick="downloadProcessedCSV()">
+                    💾 Download Processed CSV (to paste in Google Sheets)
+                </button>
+                <button class="btn btn-success" onclick="generateEmail()">
+                    📧 Generate & Send Email Report
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let uploadedData = [];
+        let analyzedData = [];
+        let emailData = {};
+        
+        // Drag and drop handling
+        const uploadArea = document.getElementById('uploadArea');
+        
+        uploadArea.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            uploadArea.classList.add('dragover');
+        });
+        
+        uploadArea.addEventListener('dragleave', () => {
+            uploadArea.classList.remove('dragover');
+        });
+        
+        uploadArea.addEventListener('drop', (e) => {
+            e.preventDefault();
+            uploadArea.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file) {
+                processFile(file);
+            }
+        });
+        
+        // File upload handling
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (file) {
+                processFile(file);
+            }
+        }
+        
+        // Process uploaded file
+        function processFile(file) {
+            const reader = new FileReader();
+            
+            document.getElementById('fileStatus').innerHTML = `
+                <div class="status status-info">
+                    <strong>Processing:</strong> ${file.name}
+                </div>
+            `;
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    uploadedData = XLSX.utils.sheet_to_json(firstSheet);
+                    
+                    document.getElementById('fileStatus').innerHTML = `
+                        <div class="status status-success">
+                            <strong>✓ File loaded:</strong> ${uploadedData.length} converts found
+                        </div>
+                    `;
+                    
+                    // Show analysis section and start analysis
+                    document.getElementById('analysisSection').style.display = 'block';
+                    analyzeData();
+                    
+                } catch (error) {
+                    document.getElementById('fileStatus').innerHTML = `
+                        <div class="status status-error">
+                            <strong>Error:</strong> ${error.message}
+                        </div>
+                    `;
+                }
+            };
+            
+            reader.readAsArrayBuffer(file);
+        }
+        
+        // Analyze HOD data
+        function analyzeData() {
+            // Simulate analysis (in real implementation, this would call the Python scoring logic)
+            setTimeout(() => {
+                analyzedData = uploadedData.map(row => {
+                    // Calculate HOD score (simplified version)
+                    const hodText = (row.itinerary_notes || '').toLowerCase();
+                    let score = 0;
+                    
+                    // Check each category (simplified)
+                    if (hodText.includes('honeymoon') || hodText.includes('anniversary') || hodText.includes('family')) score++;
+                    if (hodText.includes('hotel') || hodText.includes('room')) score++;
+                    if (hodText.includes('activity') || hodText.includes('transfer')) score++;
+                    if (hodText.includes('visa') || ['MLE', 'Thailand', 'Bali'].includes(row.sub_region)) score++;
+                    if (hodText.includes('budget')) score++;
+                    if (hodText.includes('dmc') || hodText.includes('booking')) score++;
+                    
+                    // Red flags
+                    const hasRedFlag = hodText.includes('as per product') || 
+                                      hodText.includes('nil') || 
+                                      hodText.trim().length < 20;
+                    
+                    return {
+                        ...row,
+                        hod_score: score,
+                        char_count: (row.itinerary_notes || '').length,
+                        has_red_flag: hasRedFlag
+                    };
+                });
+                
+                displayAnalysisResults();
+                document.getElementById('actionButtons').style.display = 'flex';
+            }, 1500);
+        }
+        
+        // Display analysis results
+        function displayAnalysisResults() {
+            const totalConverts = analyzedData.length;
+            const avgScore = (analyzedData.reduce((sum, row) => sum + row.hod_score, 0) / totalConverts).toFixed(2);
+            const redFlagCount = analyzedData.filter(row => row.has_red_flag).length;
+            const avgCharCount = Math.round(analyzedData.reduce((sum, row) => sum + row.char_count, 0) / totalConverts);
+            
+            // Calculate manager stats
+            const managerStats = {};
+            analyzedData.forEach(row => {
+                const manager = row.sales_manager || 'Unknown';
+                if (!managerStats[manager]) {
+                    managerStats[manager] = {
+                        total: 0,
+                        totalScore: 0,
+                        redFlags: 0,
+                        totalChars: 0
+                    };
+                }
+                managerStats[manager].total++;
+                managerStats[manager].totalScore += row.hod_score;
+                managerStats[manager].redFlags += row.has_red_flag ? 1 : 0;
+                managerStats[manager].totalChars += row.char_count;
+            });
+            
+            // Store for email
+            emailData = {
+                date: new Date().toISOString().split('T')[0],
+                totalConverts,
+                avgScore,
+                redFlagCount,
+                avgCharCount,
+                managerStats
+            };
+            
+            document.getElementById('analysisResults').innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Total Converts</div>
+                        <div class="stat-value">${totalConverts}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg HOD Score</div>
+                        <div class="stat-value">${avgScore}/7</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Red Flag HODs</div>
+                        <div class="stat-value" style="color: var(--accent-danger);">${redFlagCount}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Avg Char Count</div>
+                        <div class="stat-value">${avgCharCount}</div>
+                    </div>
+                </div>
+                
+                <h3 style="margin: 1.5rem 0 1rem;">Manager Performance Preview</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Manager</th>
+                            <th>Total HODs</th>
+                            <th>Avg Score</th>
+                            <th>Red Flags</th>
+                            <th>Avg Chars</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${Object.entries(managerStats).map(([manager, stats]) => `
+                            <tr>
+                                <td>${manager}</td>
+                                <td>${stats.total}</td>
+                                <td>${(stats.totalScore / stats.total).toFixed(2)}</td>
+                                <td style="color: ${stats.redFlags > stats.total * 0.5 ? 'var(--accent-danger)' : 'inherit'}">
+                                    ${stats.redFlags}
+                                </td>
+                                <td>${Math.round(stats.totalChars / stats.total)}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+        
+        // Download processed CSV
+        function downloadProcessedCSV() {
+            const csv = convertToCSV(analyzedData);
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `processed_hod_${emailData.date}.csv`;
+            a.click();
+            
+            alert('✓ CSV downloaded! Now:\n\n1. Open your Google Sheet\n2. Go to the last row\n3. Paste the new data\n4. Dashboard will auto-update');
+        }
+        
+        // Convert to CSV
+        function convertToCSV(data) {
+            if (data.length === 0) return '';
+            
+            const headers = Object.keys(data[0]);
+            const rows = data.map(row => 
+                headers.map(header => {
+                    const value = row[header] || '';
+                    return `"${String(value).replace(/"/g, '""')}"`;
+                }).join(',')
+            );
+            
+            return [headers.join(','), ...rows].join('\n');
+        }
+        
+        // Generate and send email
+        function generateEmail() {
+            const recipients = [
+                'revenue-captains@pickyourtrail.com',
+                'shashwat@pickyourtrail.com',
+                'ajitks@pickyourtrail.com',
+                'annes.p@pickyourtrail.com'
+            ];
+            
+            const subject = `Sales HOD Reviews - ${emailData.date} Converts`;
+            
+            // Build email body
+            let body = `Hello Sales Managers,%0D%0A%0D%0A`;
+            body += `Sales HOD analysis for ${emailData.date} converts is below.%0D%0A%0D%0A`;
+            body += `SUMMARY:%0D%0A`;
+            body += `- Total Converts: ${emailData.totalConverts}%0D%0A`;
+            body += `- Average HOD Score: ${emailData.avgScore}/7%0D%0A`;
+            body += `- Red Flag HODs: ${emailData.redFlagCount} (${Math.round(emailData.redFlagCount/emailData.totalConverts*100)}%)%0D%0A`;
+            body += `- Average Character Count: ${emailData.avgCharCount}%0D%0A%0D%0A`;
+            
+            body += `MANAGER PERFORMANCE:%0D%0A`;
+            Object.entries(emailData.managerStats).forEach(([manager, stats]) => {
+                body += `${manager}: ${stats.total} HODs | Avg Score: ${(stats.totalScore/stats.total).toFixed(2)}/7 | Red Flags: ${stats.redFlags}%0D%0A`;
+            });
+            
+            body += `%0D%0A%0D%0APlease review the dashboard for detailed breakdown.%0D%0A%0D%0A`;
+            body += `Best regards,%0D%0AAjit KS`;
+            
+            const mailtoLink = `mailto:${recipients.join(',')}?subject=${subject}&body=${body}`;
+            
+            window.location.href = mailtoLink;
+        }
+    </script>
+</body>
+</html>
