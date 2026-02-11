@@ -267,7 +267,7 @@
         
         <div class="tabs">
             <button class="tab active" onclick="switchTab('daily')">Daily Review</button>
-            <button class="tab" onclick="switchTab('summary')">Summary Stats</button>
+            <button class="tab" onclick="switchTab('summary')">30-Days Stats</button>
         </div>
         
         <!-- Daily Review Tab -->
@@ -354,6 +354,22 @@
                         </tbody>
                     </table>
                 </div>
+                
+                <div class="section">
+                    <h2 class="section-title">Top 5 Good HODs (Selected Date)</h2>
+                    <table id="top-hods-table">
+                        <thead>
+                            <tr>
+                                <th style="width: 15%;">Seller Name</th>
+                                <th style="width: 10%;">Score</th>
+                                <th style="width: 75%;">HOD Content</th>
+                            </tr>
+                        </thead>
+                        <tbody id="top-hods-tbody">
+                            <tr><td colspan="3" class="loading">Loading...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
         
@@ -363,19 +379,19 @@
                 <div class="metric-card">
                     <div class="metric-label">Total Converts</div>
                     <div class="metric-value" id="total-converts">--</div>
-                    <div class="metric-subtext">In database</div>
+                    <div class="metric-subtext">Last 30 days</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-label">Overall Avg Score</div>
                     <div class="metric-value" id="overall-score">--</div>
-                    <div class="metric-subtext">Across all data</div>
+                    <div class="metric-subtext">Last 30 days</div>
                 </div>
                 
                 <div class="metric-card">
                     <div class="metric-label">Red Flag %</div>
                     <div class="metric-value" id="overall-redflag-pct">--</div>
-                    <div class="metric-subtext">Of all HODs</div>
+                    <div class="metric-subtext">Last 30 days</div>
                 </div>
                 
                 <div class="metric-card">
@@ -386,7 +402,7 @@
             </div>
             
             <div class="section">
-                <h2 class="section-title">Top Destinations</h2>
+                <h2 class="section-title">Top Destinations (Last 30 Days)</h2>
                 <table>
                     <thead>
                         <tr>
@@ -402,7 +418,7 @@
             </div>
             
             <div class="section">
-                <h2 class="section-title">Manager Leaderboard</h2>
+                <h2 class="section-title">Manager Leaderboard (Last 30 Days)</h2>
                 <table>
                     <thead>
                         <tr>
@@ -554,12 +570,21 @@
                 // Get latest date
                 const dates = analyzedData.map(row => row.converted_date).filter(d => d);
                 const latestDate = dates.reduce((a, b) => a > b ? a : b);
-                document.getElementById('lastUpdateDate').textContent = latestDate;
                 
-                // Populate date selector
+                // Format date nicely (e.g., "10 Feb 2026")
+                const dateObj = new Date(latestDate);
+                const formattedDate = dateObj.toLocaleDateString('en-GB', { 
+                    day: 'numeric', 
+                    month: 'short', 
+                    year: 'numeric' 
+                });
+                document.getElementById('lastUpdateDate').textContent = formattedDate;
+                
+                // Populate date selector (last 15 days from most recent)
                 const uniqueDates = [...new Set(dates)].sort().reverse();
+                const last15Dates = uniqueDates.slice(0, 15); // Get most recent 15 dates
                 const dateSelector = document.getElementById('date-selector');
-                dateSelector.innerHTML = uniqueDates.map(date => 
+                dateSelector.innerHTML = last15Dates.map(date => 
                     `<option value="${date}">${date}</option>`
                 ).join('');
                 
@@ -690,27 +715,53 @@
                 `).join('');
             
             document.getElementById('tl-tbody').innerHTML = tlRows || '<tr><td colspan="3">No data</td></tr>';
+            
+            // Top 5 Good HODs
+            const topHODs = filtered
+                .filter(row => row.hod_score >= 4) // Only good scores (4+)
+                .sort((a, b) => b.hod_score - a.hod_score)
+                .slice(0, 5);
+            
+            if (topHODs.length > 0) {
+                const topHODsRows = topHODs.map(row => `
+                    <tr>
+                        <td>${row.sales_owner || 'Unknown'}</td>
+                        <td><strong>${row.hod_score}/7</strong></td>
+                        <td style="font-size: 0.875rem;">${row.itinerary_notes || 'No content'}</td>
+                    </tr>
+                `).join('');
+                document.getElementById('top-hods-tbody').innerHTML = topHODsRows;
+            } else {
+                document.getElementById('top-hods-tbody').innerHTML = '<tr><td colspan="3">No HODs with score 4+ found for this date</td></tr>';
+            }
         }
         
-        // Load summary data
+        // Load summary data (last 30 days)
         function loadSummaryData() {
-            const totalConverts = analyzedData.length;
-            const avgScore = (analyzedData.reduce((sum, row) => sum + row.hod_score, 0) / totalConverts).toFixed(2);
-            const redFlagCount = analyzedData.filter(row => row.has_red_flag).length;
-            const redFlagPct = Math.round(redFlagCount / totalConverts * 100);
-            
+            // Get last 30 days of data
             const dates = analyzedData.map(row => row.converted_date).filter(d => d).sort();
-            const minDate = dates[0];
-            const maxDate = dates[dates.length - 1];
+            const latestDate = dates[dates.length - 1];
+            const latestDateObj = new Date(latestDate);
+            const thirtyDaysAgo = new Date(latestDateObj);
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            const thirtyDaysAgoStr = thirtyDaysAgo.toISOString().split('T')[0];
+            
+            // Filter to last 30 days
+            const last30DaysData = analyzedData.filter(row => row.converted_date >= thirtyDaysAgoStr);
+            
+            const totalConverts = last30DaysData.length;
+            const avgScore = (last30DaysData.reduce((sum, row) => sum + row.hod_score, 0) / totalConverts).toFixed(2);
+            const redFlagCount = last30DaysData.filter(row => row.has_red_flag).length;
+            const redFlagPct = Math.round(redFlagCount / totalConverts * 100);
             
             document.getElementById('total-converts').textContent = totalConverts;
             document.getElementById('overall-score').textContent = `${avgScore}/7`;
             document.getElementById('overall-redflag-pct').textContent = `${redFlagPct}%`;
-            document.getElementById('date-range').textContent = `${minDate} to ${maxDate}`;
+            document.getElementById('date-range').textContent = `${thirtyDaysAgoStr} to ${latestDate}`;
             
-            // Top destinations
+            // Top destinations (last 30 days)
             const destStats = {};
-            analyzedData.forEach(row => {
+            last30DaysData.forEach(row => {
                 const dest = row.trail_to || 'Unknown';
                 if (!destStats[dest]) {
                     destStats[dest] = { total: 0, scoreSum: 0 };
@@ -737,9 +788,9 @@
             
             document.getElementById('destination-tbody').innerHTML = destRows;
             
-            // Manager leaderboard
+            // Manager leaderboard (last 30 days)
             const managerStats = {};
-            analyzedData.forEach(row => {
+            last30DaysData.forEach(row => {
                 const manager = row.sales_manager || 'Unknown';
                 if (!managerStats[manager]) {
                     managerStats[manager] = { total: 0, scoreSum: 0 };
